@@ -92,6 +92,45 @@ class DatabaseManager:
         except sqlite3.Error as e:
             self.logger.error(f"Error! Database connection failed : {e}")
             raise
+    
+    def save_employee(self, row_data: dict) -> None:
+        """社員データをDBに保存する（既存の場合は更新）
+        
+        Args:
+            row_data (dict): CSVの1行データ。キーはCSVヘッダー名（日本語）
+        
+        Raises:
+            sqlite3.Error: データベース操作に失敗した場合
+        """
+        sql="""
+        INSERT OR REPLACE INTO employees 
+            (employee_id, name, name_kana, department, position,
+             hire_date, salary, email, updated_at)
+        VALUES 
+            (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """
+        params = (
+            row_data['社員ID'],
+            row_data['氏名'],
+            row_data['氏名カナ'],
+            row_data['部署'],
+            row_data['役職'],
+            row_data['入社日'],
+            int(row_data['給与']),
+            row_data['メールアドレス'],
+        )
+        conn = self.get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            conn.commit()
+            self.logger.info(f"社員データを保存しました: {row_data['社員ID']}")
+        except sqlite3.Error as e:
+            conn.rollback()
+            self.logger.error(f"社員データの保存に失敗しました: {e}")
+            raise
+        finally:
+            conn.close()
 
 # 動作確認用テストブロック
 if __name__ == "__main__":
