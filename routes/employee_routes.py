@@ -3,7 +3,9 @@ from flask import Blueprint, render_template, abort
 from werkzeug.exceptions import HTTPException
 import logging
 
+# employee_bpの名前でBlueprintを作成
 employee_bp = Blueprint('employee', __name__)
+# ロガーの設定
 logger = logging.getLogger(__name__)
 
 @employee_bp.route('/')
@@ -13,8 +15,11 @@ def index():
         # 関数内インポートで循環インポートを回避しつつDBマネージャーをインスタンス化
         from database.database_manager import DatabaseManager
         from config import Config
+        # データベースマネージャーをインスタンス化して接続を取得
         db_manager = DatabaseManager(Config.DATABASE_PATH)
+        # データベース接続を取得してカーソルを作成
         conn = db_manager.get_connection()
+        # カーソルを作成してSQLクエリを実行
         cursor = conn.cursor()
 
         # 一覧表示に必要な列のみ取得し、employee_id順（昇順）でソート
@@ -24,7 +29,9 @@ def index():
             ORDER BY employee_id
         """)
 
+        # クエリ結果を全件取得してリストに格納
         employees = cursor.fetchall()
+        # データベース接続をクローズ
         conn.close()
 
         logger.info(f"社員一覧表示:{len(employees)}件")
@@ -43,8 +50,11 @@ def detail(employee_id):
         # 関数内インポートで循環インポートを回避しつつDBマネージャーをインスタンス化
         from database.database_manager import DatabaseManager
         from config import Config
+        # データベースマネージャーをインスタンス化して接続を取得
         db_manager = DatabaseManager(Config.DATABASE_PATH)
+        # データベース接続を取得してカーソルを作成
         conn = db_manager.get_connection()
+        # カーソルを作成してSQLクエリを実行
         cursor = conn.cursor()
 
         # URLパラメータで受け取った employee_id で社員レコードを1件取得
@@ -52,7 +62,9 @@ def detail(employee_id):
             SELECT * FROM employees WHERE employee_id = ?
         """, (employee_id,))
 
+        # クエリ結果を1件取得して変数に格納
         employee = cursor.fetchone()
+        # データベース接続をクローズ
         conn.close()
 
         # 指定IDの社員が存在しない場合は404エラーを返す
