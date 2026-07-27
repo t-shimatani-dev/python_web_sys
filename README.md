@@ -94,6 +94,26 @@ README.md（エントリーポイント）
 
 ## 🚀 クイックスタート
 
+### 0. 開発環境ポリシー（uvベース）
+
+- 本プロジェクトは、想定技術（Python 3.10+/Flask/SQLite3/Jinja2）を維持したまま、依存関係管理と仮想環境管理を uv に統一します。
+- 依存関係は pyproject.toml と uv.lock で固定し、ローカル実行とDocker実行の再現性を確保します。
+- 既存の pip/venv 手順は互換運用向けの参考情報とし、新規セットアップは uv 手順を優先してください。
+
+### 1. 環境構築（5分・uv推奨）
+
+<pre><code class="language-bash"># プロジェクトディレクトリに移動
+cd path/to/python_web_sys
+
+# 依存関係同期（.venv も自動作成）
+uv sync
+
+# アプリ起動
+uv run python app.py
+</code></pre>
+
+### 1.1 既存手順（pip/venv、互換運用向け）
+
 ### 1. 環境構築（5分）
 
 \`\`\`bash
@@ -136,6 +156,40 @@ EOF
 
 **[実装手順書.md](実装手順書.md)** を開いて、ステップ1から順に実装を進めてください。
 
+### 5. Dockerサンプル設定（uvベース）
+
+以下の Docker 関連ファイルをサンプルとして追加しています。
+
+- Dockerfile
+  - ベースイメージ: python:3.12-slim
+  - uv を公式イメージからコピーして利用
+  - pyproject.toml と uv.lock を使って uv sync --frozen --no-dev を実行
+  - コンテナ起動時に uv run python app.py で Flask アプリを起動
+
+- docker-compose.yml
+  - サービス名 web
+  - 5000:5000 をポート公開
+  - 起動コマンドは uv run python app.py
+
+- .dockerignore
+  - .git、venv、.venv、__pycache__、logs/ などを除外
+  - ビルドコンテキストを小さくし、ビルド時間短縮と不要ファイル混入防止を目的
+
+#### Docker 実行例
+
+```bash
+# イメージをビルド
+docker build -t python-web-sys:uv .
+
+# コンテナ起動
+docker run --rm -p 5000:5000 python-web-sys:uv
+```
+
+```bash
+# または compose で起動
+docker compose up --build
+```
+
 ---
 
 ## 📊 進捗管理
@@ -143,8 +197,8 @@ EOF
 ### 全体進捗（チェックボックス形式）
 
 #### 環境構築
-- [ ] 仮想環境作成・有効化
-- [ ] 依存パッケージインストール
+- [ ] uv sync で依存関係同期
+- [ ] uv run python app.py で起動確認
 - [ ] ディレクトリ構成作成
 
 #### 実装（詳細は[実装手順書.md](実装手順書.md)参照）
