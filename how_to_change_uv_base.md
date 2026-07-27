@@ -49,11 +49,13 @@ uv --version
 - 失敗: uv: command not found など
 
 ### 失敗時対応
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-exec $SHELL
+<pre><code class="language-bash"># 例: インストールスクリプトを保存し、内容を確認してから実行
+curl -LsSf https://astral.sh/uv/install.sh -o install-uv.sh
+sh install-uv.sh
+rm -f install-uv.sh
+exec "$SHELL"
 uv --version
-```
+</code></pre>
 
 ### チェック
 - [ ] uv が利用可能
