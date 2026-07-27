@@ -102,16 +102,15 @@ README.md（エントリーポイント）
 
 ### 1. 環境構築（5分・uv推奨）
 
-\`\`\`bash
-# プロジェクトディレクトリに移動
-cd /home/agio0021/projects/python_web_sys
+<pre><code class="language-bash"># プロジェクトディレクトリに移動
+cd path/to/python_web_sys
 
 # 依存関係同期（.venv も自動作成）
 uv sync
 
 # アプリ起動
 uv run python app.py
-\`\`\`
+</code></pre>
 
 ### 1.1 既存手順（pip/venv、互換運用向け）
 
