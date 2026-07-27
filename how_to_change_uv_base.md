@@ -2,7 +2,7 @@
 
 本手順書は、既存の venv + pip + requirements.txt 運用を、uv ベース運用へ置き換えるための実行手順です。
 
-対象プロジェクト: /home/agio0021/projects/python_web_sys
+対象プロジェクト: path/to/python_web_sys
 
 ---
 
