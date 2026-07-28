@@ -13,19 +13,21 @@ class CSVHandler:
 
         # 必須ヘッダー列（CSVにこれらが全て存在しなければインポートエラー）
         self.required_headers = [
-            '社員ID', '氏名', '氏名カナ', '部署', '役職',
-            '入社日', '給与', 'メールアドレス'
+            "社員ID", "氏名", "氏名カナ", "部署", "役職", "入社日", "給与", "メールアドレス"
         ]
 
     def import_from_csv(self, file_path: str) -> Tuple[int, List[str]]:
         """CSVファイルを読み込み、データベースに保存する"""
         self.logger.info(f"CSVファイルのインポートを開始: {file_path}")
         success_count = 0
-        error_messages = []
+        skipped_count = 0
+        error_messages: List[str] = []
+        seen_ids = set()
+        seen_emails = set()
 
         try:
             # UTF-8エンコーディングでCSVを開き、列名をキーにした辞書として行データを取得する
-            with open(file_path, mode='r', encoding='utf-8') as csvfile:
+            with open(file_path, mode="r", encoding="utf-8") as csvfile:
                 reader = csv.DictReader(csvfile)
 
                 # ヘッダーの検証
@@ -39,8 +41,10 @@ class CSVHandler:
 
                 # データの検証と保存（バリデーション通過行のみDB保存し、エラー行はスキップ）
                 for row_data in reader:
-                    validation_errors = self.validator.validate_employee_data(
-                        row_data)
+                    employee_id = row_data.get("社員ID", "")
+                    email = row_data.get("メールアドレス", "")
+
+                    validation_errors = self.validator.validate_employee_data(row_data)
                     if validation_errors:
                         error_message = (
                             f"社員ID {row_data.get('社員ID', '不明')}: "
@@ -50,10 +54,34 @@ class CSVHandler:
                         error_messages.append(error_message)
                         continue
 
+                    # CSV内重複またはDB既存重複はエラー化せずスキップして冪等に扱う
+                    if employee_id in seen_ids or email in seen_emails:
+                        skipped_count += 1
+                        self.logger.info(
+                            f"社員ID {employee_id}: CSV内の重複データのためスキップしました"
+                        )
+                        continue
+
+                    if self.db_manager.employee_exists(employee_id, email):
+                        skipped_count += 1
+                        self.logger.info(
+                            f"社員ID {employee_id}: 既存データと重複するためスキップしました"
+                        )
+                        continue
+
                     try:
                         self.db_manager.save_employee(row_data)
                         success_count += 1
+                        seen_ids.add(employee_id)
+                        seen_emails.add(email)
                     except Exception as e:
+                        if "重複" in str(e):
+                            skipped_count += 1
+                            self.logger.info(
+                                f"社員ID {employee_id}: 重複検知のためスキップしました"
+                            )
+                            continue
+
                         error_message = (
                             f"社員ID {row_data.get('社員ID', '不明')}: "
                             f"データベースへの保存に失敗 - {str(e)}"
@@ -72,7 +100,7 @@ class CSVHandler:
 
         self.logger.info(
             f"CSVファイルのインポートが完了しました。成功: {success_count}, "
-            f"エラー: {len(error_messages)}"
+            f"スキップ: {skipped_count}, エラー: {len(error_messages)}"
         )
         return success_count, error_messages
 

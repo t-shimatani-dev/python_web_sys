@@ -1,153 +1,112 @@
-# database/database_manager.py
-import sqlite3
+# database/database_manager.py（SQLAlchemy版）
 import logging
+import sqlite3
 from pathlib import Path
+
+from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session, sessionmaker
+
+from database.models import Base, Employee
 
 
 class DatabaseManager:
-    """データベース管理クラス"""
+    """データベース管理クラス（SQLAlchemy版）"""
 
-    def __init__(self, db_path):
-        """
-        コンストラクタ
-
-        Args:
-            db_path (str): データベースファイルパス
-        """
+    def __init__(self, db_path: str):
         self.db_path = db_path
         self.logger = logging.getLogger(__name__)
+        self._engine = None
+        self._SessionFactory = None
 
-    def initialize_database(self):
+    def initialize_database(self) -> bool:
         """データベースとテーブルを初期化
 
         Returns:
             bool: 成功時にTrue、失敗時にFalse
         """
-
-        if not Path(self.db_path).exists():
-            self.logger.info(f"Database file {self.db_path} does not exist. Creating new database.")
-
         try:
-            # データベースディレクトリが存在しない場合は作成
             db_dir = Path(self.db_path).parent
             db_dir.mkdir(parents=True, exist_ok=True)
 
-            # データベース接続
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+            # エンジン作成（sqlite:///は相対パス、sqlite:////は絶対パス）
+            self._engine = create_engine(f"sqlite:///{self.db_path}", echo=False)
 
-            # テーブル作成SQL
-            create_table_sql = """
-            CREATE TABLE IF NOT EXISTS employees (
-                employee_id TEXT PRIMARY KEY,
-                name TEXT NOT NULL,
-                name_kana TEXT NOT NULL,
-                department TEXT NOT NULL,
-                position TEXT NOT NULL,
-                hire_date TEXT NOT NULL,
-                salary INTEGER NOT NULL,
-                email TEXT NOT NULL UNIQUE,
-                phone TEXT,
-                postal_code TEXT,
-                address TEXT,
-                notes TEXT,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-            """
+            # モデル定義からテーブル・インデックスを自動生成（CREATE TABLE IF NOT EXISTS相当）
+            Base.metadata.create_all(self._engine)
 
-            cursor.execute(create_table_sql)
+            self._SessionFactory = sessionmaker(bind=self._engine)
 
-            # インデックス作成
-            index_sqls = [
-                "CREATE INDEX IF NOT EXISTS idx_employees_name ON employees(name)",
-                "CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department)",
-                "CREATE INDEX IF NOT EXISTS idx_employees_hire_date ON employees(hire_date)",
-            ]
-
-            for index_sql in index_sqls:
-                cursor.execute(index_sql)
-
-            conn.commit()
-            conn.close()
-
-            self.logger.info(f"Database initialized successfully at {self.db_path}")
+            self.logger.info(f"Database initialized successfully: {self.db_path}")
             return True
 
-        except sqlite3.Error as e:
-            self.logger.error(f"Error! Database initialized failed : {e}")
+        except Exception as e:
+            self.logger.error(f"Database initialization failed: {e}")
             return False
 
-    def get_connection(self):
-        """
-        データベース接続を取得
+    def _ensure_initialized(self) -> None:
+        """内部利用: 未初期化なら初期化を試行する"""
+        if self._SessionFactory is None or self._engine is None:
+            initialized = self.initialize_database()
+            if not initialized:
+                raise RuntimeError("データベース初期化に失敗しました")
+
+    def get_session(self) -> Session:
+        """DBセッションを取得（with文で使用すること）
 
         Returns:
-            sqlite3.Connection: データベース接続オブジェクト
+            Session: SQLAlchemyセッションオブジェクト
+
+        Example:
+            with db_manager.get_session() as session:
+                employees = session.query(Employee).all()
         """
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row  # 結果を辞書形式で取得
-            return conn
-        except sqlite3.Error as e:
-            self.logger.error(f"Error! Database connection failed : {e}")
-            raise
+        self._ensure_initialized()
+        return self._SessionFactory()
+
+    def get_connection(self):
+        """互換API: sqlite3ライクな接続を返す（既存routes向け）"""
+        self._ensure_initialized()
+        # SQLAlchemy経由でDB-API接続を取得すると cursor/commit/close が利用できる
+        conn = self._engine.raw_connection()
+        # テンプレート側の属性アクセス互換のため sqlite3.Row を返す。
+        conn.dbapi_connection.row_factory = sqlite3.Row
+        return conn
+
+    def employee_exists(self, employee_id: str, email: str) -> bool:
+        """社員IDまたはメールアドレスが既存レコードと重複するかを確認する。"""
+        self._ensure_initialized()
+
+        with self.get_session() as session:
+            exists = (
+                session.query(Employee)
+                .filter((Employee.employee_id == employee_id) | (Employee.email == email))
+                .first()
+            )
+            return exists is not None
 
     def save_employee(self, row_data: dict) -> None:
-        """社員データをDBに保存する（既存の場合は更新）
+        """CSVの1行データをemployeesテーブルに保存する"""
+        self._ensure_initialized()
 
-        Args:
-            row_data (dict): CSVの1行データ。キーはCSVヘッダー名（日本語）
-
-        Raises:
-            sqlite3.Error: データベース操作に失敗した場合
-        """
-        sql = """
-        INSERT OR REPLACE INTO employees
-            (employee_id, name, name_kana, department, position,
-             hire_date, salary, email, updated_at)
-        VALUES
-            (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """
-        params = (
-            row_data["社員ID"],
-            row_data["氏名"],
-            row_data["氏名カナ"],
-            row_data["部署"],
-            row_data["役職"],
-            row_data["入社日"],
-            int(row_data["給与"]),
-            row_data["メールアドレス"],
+        employee = Employee(
+            employee_id=row_data.get("社員ID", ""),
+            name=row_data.get("氏名", ""),
+            name_kana=row_data.get("氏名カナ", ""),
+            department=row_data.get("部署", ""),
+            position=row_data.get("役職", ""),
+            hire_date=row_data.get("入社日", ""),
+            salary=int(row_data.get("給与", 0)),
+            email=row_data.get("メールアドレス", ""),
+            phone=row_data.get("電話番号", ""),
+            postal_code=row_data.get("郵便番号", ""),
+            address=row_data.get("住所", ""),
+            notes=row_data.get("備考", ""),
         )
-        conn = self.get_connection()
+
         try:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            conn.commit()
-            self.logger.info(f"社員データを保存しました: {row_data['社員ID']}")
-        except sqlite3.Error as e:
-            conn.rollback()
-            self.logger.error(f"社員データの保存に失敗しました: {e}")
-            raise
-        finally:
-            conn.close()
-
-
-# 動作確認用テストブロック
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    from config import Config
-
-    db_manager = DatabaseManager(Config.DATABASE_PATH)
-    success = db_manager.initialize_database()
-
-    if success:
-        print("✓ データベース初期化成功")
-        conn = db_manager.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tables = cursor.fetchall()
-        print(f"テーブル一覧: {[dict(t)['name'] for t in tables]}")
-        conn.close()
-    else:
-        print("✗ データベース初期化失敗")
+            with self.get_session() as session:
+                session.add(employee)
+                session.commit()
+        except IntegrityError as e:
+            raise ValueError("社員IDまたはメールアドレスが重複しています") from e

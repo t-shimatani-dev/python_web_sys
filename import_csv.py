@@ -7,8 +7,9 @@ CSVインポートスクリプト
 例:
     python3 import_csv.py /home/agio0021/projects/python_web_sys/data/sample_employees.csv
 """
-import sys
 import os
+import sys
+
 
 def main():
     if len(sys.argv) != 2:
@@ -22,12 +23,16 @@ def main():
         print(f"エラー: ファイルが見つかりません: {csv_path}")
         sys.exit(1)
 
+    from config import Config
     from database.database_manager import DatabaseManager
     from utils.csv_handler import CSVHandler
     from utils.validator import DataValidator
-    from config import Config
 
     db = DatabaseManager(Config.DATABASE_PATH)
+    if not db.initialize_database():
+        print("エラー: データベースの初期化に失敗しました")
+        sys.exit(1)
+
     handler = CSVHandler(db, DataValidator())
     count, errors = handler.import_from_csv(csv_path)
 
@@ -36,6 +41,7 @@ def main():
         print(f"エラー: {len(errors)}件")
         for e in errors:
             print(f"  - {e}")
+
 
 if __name__ == "__main__":
     main()
