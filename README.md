@@ -112,7 +112,17 @@ uv sync
 uv run python app.py
 </code></pre>
 
-### 1.1 既存手順（pip/venv、互換運用向け）
+### 1.1 コード品質チェック（Ruff）
+
+```bash
+# Ruffで静的解析を実行
+uv run ruff check app.py database routes utils
+
+# 自動修正可能な項目を修正する場合
+uv run ruff check --fix app.py database routes utils
+```
+
+### 1.2 既存手順（pip/venv、互換運用向け）
 
 ### 1. 環境構築（5分）
 

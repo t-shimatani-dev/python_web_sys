@@ -8,6 +8,7 @@ from utils.logger import setup_logger
 # - テストの際に異なる設定でアプリを簡単に作成できる
 # - 循環インポートを回避できる
 
+
 def create_app():
     """Flaskアプリケーションファクトリー関数"""
 
@@ -26,6 +27,7 @@ def create_app():
     app.register_blueprint(employee_bp)
 
     return app
+
 
 if __name__ == '__main__':
     app = create_app()

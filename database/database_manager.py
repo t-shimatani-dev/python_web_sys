@@ -16,17 +16,17 @@ class DatabaseManager:
         """
         self.db_path = db_path
         self.logger = logging.getLogger(__name__)
-    
+
     def initialize_database(self):
         """データベースとテーブルを初期化
-        
+
         Returns:
             bool: 成功時にTrue、失敗時にFalse
         """
-        
+
         if not Path(self.db_path).exists():
             self.logger.info(f"Database file {self.db_path} does not exist. Creating new database.")
-        
+
         try:
             # データベースディレクトリが存在しない場合は作成
             db_dir = Path(self.db_path).parent
@@ -62,7 +62,7 @@ class DatabaseManager:
             index_sqls = [
                 "CREATE INDEX IF NOT EXISTS idx_employees_name ON employees(name)",
                 "CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department)",
-                "CREATE INDEX IF NOT EXISTS idx_employees_hire_date ON employees(hire_date)"
+                "CREATE INDEX IF NOT EXISTS idx_employees_hire_date ON employees(hire_date)",
             ]
 
             for index_sql in index_sqls:
@@ -73,7 +73,7 @@ class DatabaseManager:
 
             self.logger.info(f"Database initialized successfully at {self.db_path}")
             return True
-        
+
         except sqlite3.Error as e:
             self.logger.error(f"Error! Database initialized failed : {e}")
             return False
@@ -81,7 +81,7 @@ class DatabaseManager:
     def get_connection(self):
         """
         データベース接続を取得
-        
+
         Returns:
             sqlite3.Connection: データベース接続オブジェクト
         """
@@ -92,32 +92,32 @@ class DatabaseManager:
         except sqlite3.Error as e:
             self.logger.error(f"Error! Database connection failed : {e}")
             raise
-    
+
     def save_employee(self, row_data: dict) -> None:
         """社員データをDBに保存する（既存の場合は更新）
-        
+
         Args:
             row_data (dict): CSVの1行データ。キーはCSVヘッダー名（日本語）
-        
+
         Raises:
             sqlite3.Error: データベース操作に失敗した場合
         """
-        sql="""
-        INSERT OR REPLACE INTO employees 
+        sql = """
+        INSERT OR REPLACE INTO employees
             (employee_id, name, name_kana, department, position,
              hire_date, salary, email, updated_at)
-        VALUES 
+        VALUES
             (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         """
         params = (
-            row_data['社員ID'],
-            row_data['氏名'],
-            row_data['氏名カナ'],
-            row_data['部署'],
-            row_data['役職'],
-            row_data['入社日'],
-            int(row_data['給与']),
-            row_data['メールアドレス'],
+            row_data["社員ID"],
+            row_data["氏名"],
+            row_data["氏名カナ"],
+            row_data["部署"],
+            row_data["役職"],
+            row_data["入社日"],
+            int(row_data["給与"]),
+            row_data["メールアドレス"],
         )
         conn = self.get_connection()
         try:
@@ -132,9 +132,9 @@ class DatabaseManager:
         finally:
             conn.close()
 
+
 # 動作確認用テストブロック
 if __name__ == "__main__":
-    import logging
     logging.basicConfig(level=logging.INFO)
     from config import Config
 
