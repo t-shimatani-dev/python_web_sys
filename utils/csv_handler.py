@@ -2,6 +2,8 @@ import csv
 import logging
 from typing import List, Tuple
 
+from utils.exceptions import DuplicateEmployeeException
+
 
 class CSVHandler:
     """CSVファイルの読み込みとデータベースへの保存を担当するクラス"""
@@ -74,14 +76,13 @@ class CSVHandler:
                         success_count += 1
                         seen_ids.add(employee_id)
                         seen_emails.add(email)
+                    except DuplicateEmployeeException:
+                        skipped_count += 1
+                        self.logger.info(
+                            f"社員ID {employee_id}: 重複検知のためスキップしました"
+                        )
+                        continue
                     except Exception as e:
-                        if "重複" in str(e):
-                            skipped_count += 1
-                            self.logger.info(
-                                f"社員ID {employee_id}: 重複検知のためスキップしました"
-                            )
-                            continue
-
                         error_message = (
                             f"社員ID {row_data.get('社員ID', '不明')}: "
                             f"データベースへの保存に失敗 - {str(e)}"

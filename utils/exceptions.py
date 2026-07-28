@@ -15,6 +15,10 @@ class ValidationException(EmployeeSystemException):
     """バリデーション関連の例外"""
     pass
 
+class DuplicateEmployeeException(DatabaseException):
+    """社員IDまたはメールアドレス重複の例外"""
+    pass
+
 class NotFoundException(EmployeeSystemException):
     """データ不存在の例外"""
     pass

@@ -5,6 +5,8 @@ from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
+
+from utils.exceptions import DuplicateEmployeeException
 from sqlalchemy.orm import Session, sessionmaker
 
 from database.models import Base, Employee
@@ -69,8 +71,10 @@ class DatabaseManager:
         self._ensure_initialized()
         # SQLAlchemy経由でDB-API接続を取得すると cursor/commit/close が利用できる
         conn = self._engine.raw_connection()
+        # SQLAlchemyのバージョン差異を吸収し、内部属性への固定依存を避ける。
+        dbapi_conn = getattr(conn, "dbapi_connection", conn)
         # テンプレート側の属性アクセス互換のため sqlite3.Row を返す。
-        conn.dbapi_connection.row_factory = sqlite3.Row
+        dbapi_conn.row_factory = sqlite3.Row
         return conn
 
     def employee_exists(self, employee_id: str, email: str) -> bool:
@@ -109,4 +113,4 @@ class DatabaseManager:
                 session.add(employee)
                 session.commit()
         except IntegrityError as e:
-            raise ValueError("社員IDまたはメールアドレスが重複しています") from e
+            raise DuplicateEmployeeException("社員IDまたはメールアドレスが重複しています") from e
