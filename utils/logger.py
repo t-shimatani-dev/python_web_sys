@@ -4,6 +4,7 @@ from logging.handlers import TimedRotatingFileHandler
 import os
 from config import Config
 
+
 def setup_logger(name='employee_system', log_file=None, level=None):
     """ロガーのセットアップ。
     log_file と level が未指定の場合は config.py の Config クラスの値を使用。
@@ -66,6 +67,7 @@ def setup_logger(name='employee_system', log_file=None, level=None):
     logger.addHandler(console_handler)
 
     return logger
+
 
 # グローバルロガー初期化
 app_logger = setup_logger()

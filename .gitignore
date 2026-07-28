@@ -10,5 +10,6 @@ logs/
 *.db
 *.sqlite3
 .env
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 .idea/

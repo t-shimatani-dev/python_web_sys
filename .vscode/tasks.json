@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "lint: ruff",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "ruff",
+        "check",
+        "app.py",
+        "database",
+        "routes",
+        "utils"
+      ],
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "lint: ruff --fix",
+      "type": "shell",
+      "command": "uv",
+      "args": [
+        "run",
+        "ruff",
+        "check",
+        "--fix",
+        "app.py",
+        "database",
+        "routes",
+        "utils"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
