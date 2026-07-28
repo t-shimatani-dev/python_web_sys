@@ -217,6 +217,47 @@ curl -I http://127.0.0.1:5000/
 
 ---
 
+## 6.1 トラブルシュート（No module named "flask"）
+
+### 症状
+
+```bash
+PYTHONPATH=. python3 app.py
+# ModuleNotFoundError: No module named "flask"
+```
+
+### 根本原因
+
+- システム Python（例: /usr/bin/python3）で起動しており、依存関係が入った仮想環境を使えていないためです。
+
+### 対処手順（推奨）
+
+```bash
+# 依存関係を同期
+uv sync
+
+# uv管理の環境で起動
+uv run python app.py
+```
+
+### 代替手順（互換運用）
+
+```bash
+source venv/bin/activate
+python3 app.py
+```
+
+### 確認コマンド
+
+```bash
+which python3
+python3 -c "import sys; print(sys.executable)"
+```
+
+- /usr/bin/python3 が表示される場合は、仮想環境が有効になっていません。
+
+---
+
 ## 7. ドキュメント運用切替
 
 ### 目的

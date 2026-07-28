@@ -200,6 +200,47 @@ docker run --rm -p 5000:5000 python-web-sys:uv
 docker compose up --build
 ```
 
+## 🛠️ トラブルシュート（実行環境）
+
+### 症状: No module named "flask"
+
+```bash
+PYTHONPATH=. python3 app.py
+# ModuleNotFoundError: No module named "flask"
+```
+
+### 根本原因
+
+- システム Python（例: /usr/bin/python3）で起動しており、プロジェクト依存（Flask）が入った仮想環境を使えていないためです。
+
+### 対処手順（推奨）
+
+```bash
+# 依存関係を同期
+uv sync
+
+# uv管理の環境で起動
+uv run python app.py
+```
+
+### 代替手順（互換運用）
+
+```bash
+# 既存venvを使う場合
+source venv/bin/activate
+python3 app.py
+```
+
+### 確認コマンド
+
+```bash
+# 使っているPython実体を確認
+which python3
+python3 -c "import sys; print(sys.executable)"
+```
+
+- /usr/bin/python3 が表示される場合は、仮想環境が有効になっていません。
+
 ---
 
 ## 📊 進捗管理
