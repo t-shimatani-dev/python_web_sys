@@ -93,9 +93,7 @@ class DataValidator:
         if not department:
             return False, "部署は必須です"
         if department not in self.VALID_DEPARTMENTS:
-            return False, f"部署は次のいずれかを選択してください: {
-                ', '.join(
-                    self.VALID_DEPARTMENTS)}"
+            return False, f"部署は次のいずれかを選択してください: {', '.join(self.VALID_DEPARTMENTS)}"
         return True, ""
 
     def validate_position(self, position: str) -> Tuple[bool, str]:
@@ -103,9 +101,7 @@ class DataValidator:
         if not position:
             return False, "役職は必須です"
         if position not in self.VALID_POSITIONS:
-            return False, f"役職は次のいずれかを選択してください: {
-                ', '.join(
-                    self.VALID_POSITIONS)}"
+            return False, f"役職は次のいずれかを選択してください: {', '.join(self.VALID_POSITIONS)}"
         return True, ""
 
     def validate_phone(self, phone: str) -> Tuple[bool, str]:

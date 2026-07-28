@@ -25,9 +25,7 @@ class DatabaseManager:
         """
 
         if not Path(self.db_path).exists():
-            self.logger.info(
-                f"Database file {
-                    self.db_path} does not exist. Creating new database.")
+            self.logger.info(f"Database file {self.db_path} does not exist. Creating new database.")
 
         try:
             # データベースディレクトリが存在しない場合は作成
@@ -62,12 +60,10 @@ class DatabaseManager:
 
             # インデックス作成
             index_sqls = [
-                "CREATE INDEX IF NOT EXISTS idx_employees_name "
-                "ON employees(name)",
-                "CREATE INDEX IF NOT EXISTS idx_employees_department "
-                "ON employees(department)",
-                "CREATE INDEX IF NOT EXISTS idx_employees_hire_date "
-                "ON employees(hire_date)"]
+                "CREATE INDEX IF NOT EXISTS idx_employees_name ON employees(name)",
+                "CREATE INDEX IF NOT EXISTS idx_employees_department ON employees(department)",
+                "CREATE INDEX IF NOT EXISTS idx_employees_hire_date ON employees(hire_date)",
+            ]
 
             for index_sql in index_sqls:
                 cursor.execute(index_sql)
@@ -75,9 +71,7 @@ class DatabaseManager:
             conn.commit()
             conn.close()
 
-            self.logger.info(
-                f"Database initialized successfully at {
-                    self.db_path}")
+            self.logger.info(f"Database initialized successfully at {self.db_path}")
             return True
 
         except sqlite3.Error as e:
@@ -116,14 +110,14 @@ class DatabaseManager:
             (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         """
         params = (
-            row_data['社員ID'],
-            row_data['氏名'],
-            row_data['氏名カナ'],
-            row_data['部署'],
-            row_data['役職'],
-            row_data['入社日'],
-            int(row_data['給与']),
-            row_data['メールアドレス'],
+            row_data["社員ID"],
+            row_data["氏名"],
+            row_data["氏名カナ"],
+            row_data["部署"],
+            row_data["役職"],
+            row_data["入社日"],
+            int(row_data["給与"]),
+            row_data["メールアドレス"],
         )
         conn = self.get_connection()
         try:
