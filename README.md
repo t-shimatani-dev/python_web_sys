@@ -128,7 +128,28 @@ uv run python app.py
   - `uv run python -m routes.employee_routes`
 
 
-### 1.2 コード品質チェック（Ruff）
+### 1.2 実行時環境変数ルール（debug/host制御）
+
+以下の4変数で起動ポリシーを統一します。
+
+- APP_ENV
+  - development: 開発モード
+  - production: 本番モード（debugは強制無効）
+- FLASK_DEBUG
+  - true/1/on: debug有効
+  - false/0/off: debug無効
+- FLASK_RUN_HOST
+  - 127.0.0.1: ローカル限定バインド
+  - 0.0.0.0: 全インターフェースへバインド
+- ALLOW_EXTERNAL_DEBUG
+  - true のときのみ、debug有効時の 0.0.0.0 バインドを許可
+
+運用ルール:
+- 本番環境（APP_ENV=production）では debug は常に無効化されます。
+- debug有効時に FLASK_RUN_HOST=0.0.0.0 を使う場合は、ALLOW_EXTERNAL_DEBUG=true を必ず明示してください。
+- ローカル開発の推奨値は APP_ENV=development, FLASK_DEBUG=true, FLASK_RUN_HOST=127.0.0.1 です。
+
+### 1.3 コード品質チェック（Ruff）
 
 ```bash
 # Ruffで静的解析を実行
@@ -138,7 +159,7 @@ uv run ruff check app.py database routes utils
 uv run ruff check --fix app.py database routes utils
 ```
 
-### 1.3 既存手順（pip/venv、互換運用向け）
+### 1.4 既存手順（pip/venv、互換運用向け）
 
 ### 1. 環境構築（5分）
 
@@ -195,7 +216,13 @@ EOF
 - docker-compose.yml
   - サービス名 web
   - 5000:5000 をポート公開
+  - 本番想定の安全デフォルト（APP_ENV=production, FLASK_DEBUG=0）
   - 起動コマンドは uv run python app.py
+
+- docker-compose.override.yml
+  - ローカル開発向け上書き設定（APP_ENV=development, FLASK_DEBUG=1）
+  - FLASK_RUN_HOST=0.0.0.0 と ALLOW_EXTERNAL_DEBUG=1 を明示
+  - `docker compose up --build` 実行時に自動適用
 
 - .dockerignore
   - .git、venv、.venv、__pycache__、logs/ などを除外
@@ -212,8 +239,11 @@ docker run --rm -p 5000:5000 python-web-sys:uv
 ```
 
 ```bash
-# または compose で起動
+# compose で起動（開発向け override が自動適用されます）
 docker compose up --build
+
+# 本番想定の設定のみで起動したい場合
+docker compose -f docker-compose.yml up --build
 ```
 
 ## 🛠️ トラブルシュート（実行環境）

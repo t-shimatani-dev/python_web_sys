@@ -1,4 +1,6 @@
 # app.py
+import os
+
 try:
     from flask import Flask
 except ModuleNotFoundError as exc:
@@ -18,6 +20,7 @@ from utils.logger import setup_logger
 # - テストの際に異なる設定でアプリを簡単に作成できる
 # - 循環インポートを回避できる
 
+
 def create_app():
     """Flaskアプリケーションファクトリー関数"""
     # Flaskアプリのインスタンスを作成（__name__でテンプレート等のパスを自動解決）
@@ -34,6 +37,27 @@ def create_app():
     return app
 
 
+def _env_flag(name: str, default: bool = False) -> bool:
+    """環境変数の真偽値を解釈する。"""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 if __name__ == "__main__":
     app = create_app()
-    app.run(host="0.0.0.0", debug=True)
+    app_env = os.getenv("APP_ENV", os.getenv("FLASK_ENV", "development")).lower()
+    debug_enabled = _env_flag("FLASK_DEBUG", default=app_env != "production")
+    host = os.getenv("FLASK_RUN_HOST", "127.0.0.1")
+    port = int(os.getenv("FLASK_RUN_PORT", "5000"))
+
+    # 本番環境ではデバッガーを無効化する。
+    if app_env == "production":
+        debug_enabled = False
+
+    # 明示許可がない限り、debug時の 0.0.0.0 バインドは防止する。
+    if debug_enabled and host == "0.0.0.0" and not _env_flag("ALLOW_EXTERNAL_DEBUG", False):
+        host = "127.0.0.1"
+
+    app.run(host=host, port=port, debug=debug_enabled)
