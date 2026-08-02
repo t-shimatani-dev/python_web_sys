@@ -112,7 +112,23 @@ uv sync
 uv run python app.py
 </code></pre>
 
-### 1.1 コード品質チェック（Ruff）
+#### 補足
+- `uv sync` は、Ubuntuを起動するたびに毎回実行するものではありません。
+- 初回セットアップ時と、`pyproject.toml` や `uv.lock` を変更したあとに実行します。
+- 依存関係に変更がなければ、起動時は `uv run python app.py` だけで十分です。
+
+### 1.1 実行ルール（複数Pythonファイルを作成する場合）
+
+- 本プロジェクトでは、依存パッケージを使うPython実行は `uv run` 経由を原則とします。
+- 単体スクリプトを直接実行する場合は、`uv run python XXX.py` を使います。
+- パッケージ配下のモジュールを実行する場合は、`uv run python -m package.module` を使います。
+- `package.module` は「複数ファイルを1つに固めたもの」ではなく、`package/` ディレクトリ内の `module.py` をドット区切りで指定する実行方法です。
+- 例:
+  - `uv run python import_csv.py`
+  - `uv run python -m routes.employee_routes`
+
+
+### 1.2 コード品質チェック（Ruff）
 
 ```bash
 # Ruffで静的解析を実行
@@ -122,7 +138,7 @@ uv run ruff check app.py database routes utils
 uv run ruff check --fix app.py database routes utils
 ```
 
-### 1.2 既存手順（pip/venv、互換運用向け）
+### 1.3 既存手順（pip/venv、互換運用向け）
 
 ### 1. 環境構築（5分）
 
