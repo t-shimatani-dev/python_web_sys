@@ -165,6 +165,21 @@ uv sync
 2. uv lock で固定情報を更新
 3. uv sync で実環境へ反映
 
+#### Ubuntu起動ごとの扱い
+- `uv sync` は、Ubuntuを起動するたびに毎回実行するものではありません。
+- 通常は、初回セットアップ時と、`pyproject.toml` や `uv.lock` を変更したあとに実行します。
+- `.venv` がすでにあり、依存関係に変更がないなら、起動時は `uv run python app.py` だけで十分です。
+- つまり、`uv sync` は「環境を揃え直す作業」であって、「毎回の起動コマンド」ではありません。
+
+#### 実行ルール（複数Pythonファイルを作成する場合）
+- 依存パッケージを使う実行は、`uv run` 経由を原則とします。
+- 単体スクリプトを直接実行する場合は、`uv run python XXX.py` を使います。
+- パッケージ配下のモジュールを実行する場合は、`uv run python -m package.module` を使います。
+- `package.module` は、`package/` ディレクトリ内の `module.py` をドット区切りで指定する実行方法です。
+- 例:
+  - `uv run python import_csv.py`
+  - `uv run python -m routes.employee_routes`
+
 #### イメージ（たとえ）
 - pyproject.toml: 欲しい材料の希望リスト
 - uv lock: 実際に買う材料を品番まで確定した買い物メモ
@@ -324,19 +339,42 @@ docker build -t python-web-sys:uv .
 docker run --rm -p 5000:5000 python-web-sys:uv
 ```
 
-別ターミナルで:
+### 5000 番ポートが使用中の場合の手順
+1. 5000 番を使っている既存コンテナを確認する。
+```bash
+docker ps --filter "publish=5000" --format "{{.Names}} {{.Status}} {{.Ports}}"
+```
+2. 該当コンテナがあれば停止する。
+```bash
+docker stop <container_name>
+```
+3. Docker 以外のプロセスが 5000 番を使っていないか確認する。
+```bash
+ss -ltnp | grep ':5000'
+```
+4. プロセスが見つかった場合は PID を確認して停止する。
+```bash
+kill <PID>
+```
+5. 停止後に、もう一度 Docker コンテナを起動する。
+```bash
+docker run --rm -p 5000:5000 python-web-sys:uv
+```
+
+### 実行結果の確認手順
+別ターミナルで次を実行する。
 ```bash
 curl -I http://127.0.0.1:5000/
 ```
 
-### 判定基準
-- 成功: build 成功 + run 成功 + HTTP 応答あり
-- 失敗: build エラー、起動エラー、応答なし
+5000 番が空いている状態で実行する。
+
+### 成否の確認基準
+- 成功: `HTTP/1.1 200 OK` または `HTTP/1.1 302 FOUND` が返る
+- 失敗: `Recv failure: 接続が相手からリセットされました`、`Connection refused`、または応答なし
 
 ### チェック
 - [ ] Docker を uv ベースへ切り替え
-
----
 
 ## 9. 旧 venv の扱い
 
